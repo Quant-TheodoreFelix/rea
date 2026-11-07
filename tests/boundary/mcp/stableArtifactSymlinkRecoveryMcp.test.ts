@@ -28,6 +28,8 @@ mcpTest.skipIf(process.platform === "win32")(
         "inspect_elf_notes",
         "inspect_devicetree",
         "inspect_sqlite_database",
+        "inspect_model_artifact",
+        "inspect_gpu_code_objects",
       ]) {
         const response = await client.callTool({
           name,

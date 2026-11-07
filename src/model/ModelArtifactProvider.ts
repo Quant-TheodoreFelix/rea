@@ -49,7 +49,6 @@ import { jsonValueByteLength } from "../domain/jsonValueByteLength.js";
 import { ProviderCleanupError } from "../domain/providerCleanupError.js";
 import {
   isSelectedRegularFileError,
-  RegularFileSymlinkRefusalError,
   sameRegularFileState,
 } from "../filesystem/RegularFile.js";
 import { regularFileSymlinkRecovery } from "../artifacts/StableArtifactFailure.js";
@@ -179,16 +178,11 @@ export class ModelArtifactProvider implements ModelArtifactPort {
           {},
           { cause: primary },
         );
-      else if (
-        origin === "owned-or-classified" &&
-        primary instanceof RegularFileSymlinkRefusalError
-      )
+      else if (isSelectedRegularFileError(primary))
         error = new BinaryTargetError(input.path, primary.message, {
           cause,
-          ...regularFileSymlinkRecovery(primary),
+          ...regularFileSymlinkRecovery(primary, input.path),
         });
-      else if (isSelectedRegularFileError(primary))
-        error = new BinaryTargetError(input.path, primary.message, { cause });
       else
         error = new ProviderAdapterError(this.identity.id, OPERATION, {
           cause,

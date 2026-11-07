@@ -19,12 +19,23 @@ export const stableArtifactInputRecovery = (cause: ArtifactReaderFailure) =>
       }
     : {};
 
-/** Offer the same retry when a symlink refusal names its resolved target. */
+/**
+ * Offer the same retry when admission refused the caller-selected symlink and
+ * it resolves to a regular file. A loop, a dangling link or an unresolvable
+ * target has no retry path.
+ */
 export const regularFileSymlinkRecovery = (
-  cause: RegularFileSymlinkRefusalError,
-) =>
-  cause.kind === "single" && cause.resolvedPath !== undefined
-    ? { remediationAction: resolvedRegularFileRemediation(cause.resolvedPath) }
+  cause: unknown,
+  selectedPath: string,
+): { readonly remediationAction: string } | Record<string, never> =>
+  cause instanceof RegularFileSymlinkRefusalError &&
+  cause.path === selectedPath &&
+  cause.resolution.kind === "regular-file"
+    ? {
+        remediationAction: resolvedRegularFileRemediation(
+          cause.resolution.resolvedPath,
+        ),
+      }
     : {};
 
 const artifactCleanupFailure = (

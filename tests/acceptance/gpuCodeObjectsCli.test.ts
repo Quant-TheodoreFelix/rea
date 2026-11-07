@@ -10,6 +10,7 @@ import {
   gpuCodeObjectsSummaryViewResultSchema,
 } from "../../src/domain/analysisView/analysisView.js";
 import { parseEvidence, createEvidence } from "../../src/domain/evidence.js";
+import { resolvedRegularFileRemediation } from "../../src/artifacts/StableArtifactFailure.js";
 import { createTestTempDirectory } from "../fixtures/temporaryDirectory.js";
 import { connectLocalToolsMcp } from "../fixtures/localToolsMcp.js";
 import { parseMcpToolError } from "../fixtures/mcpToolError.js";
@@ -1431,8 +1432,8 @@ it("does not interpret non-AMD ELF flags as AMD processor declarations through M
   expect(report.coverage.payloads).toBe("partial");
 });
 
-cliTest(
-  "names the resolved target for a single symlink instead of reporting ELOOP",
+cliTest.skipIf(process.platform === "win32")(
+  "names the resolved file of a selected symlink and admits that file",
   async ({ cli }) => {
     const root = await createTestTempDirectory("rea-gpu-symlink-");
     const real = join(root, "real.cubin");
@@ -1448,15 +1449,9 @@ cliTest(
       code: "target_unavailable",
       category: "unavailable",
       retryable: false,
-      remediation: {
-        action: `Retry with the resolved regular file path ${real}. The selected symlink is not admitted; the retry will validate the target again.`,
-      },
-      details: {
-        path: single,
-        reason: `Selected path is a symbolic link to ${real}; symlinks are not followed`,
-      },
+      remediation: { action: resolvedRegularFileRemediation(real) },
+      details: { path: single, reason: expect.stringContaining(real) },
     });
-    expect(JSON.stringify(result.json)).not.toContain("too many");
 
     const resolved = await runFileCli(cli, {
       arguments: [

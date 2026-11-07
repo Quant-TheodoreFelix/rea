@@ -1152,30 +1152,19 @@ describe("analysis error projection: caller contract", () => {
 });
 
 describe("analysis error projection: target recovery", () => {
-  it("uses a producer-supplied target recovery while keeping target_unavailable", () => {
+  it("delivers a producer-owned target recovery while keeping target_unavailable", () => {
+    const path = "/local/targets/link.gguf";
+    const reason = "selected symlink refused by the producer";
+    const remediationAction = "Retry with /local/targets/real.gguf.";
     const projected = projectAnalysisError(
-      new BinaryTargetError(
-        "/local/targets/link.gguf",
-        "Selected path is a symbolic link to /local/targets/real.gguf; symlinks are not followed",
-        {
-          remediationAction:
-            "Retry with the resolved regular file path /local/targets/real.gguf. The selected symlink is not admitted; the retry will validate the target again.",
-        },
-      ),
+      new BinaryTargetError(path, reason, { remediationAction }),
     );
     expect(projected).toMatchObject({
       code: "target_unavailable",
       category: "unavailable",
       retryable: false,
-      remediation: {
-        action:
-          "Retry with the resolved regular file path /local/targets/real.gguf. The selected symlink is not admitted; the retry will validate the target again.",
-      },
-      details: {
-        path: "/local/targets/link.gguf",
-        reason:
-          "Selected path is a symbolic link to /local/targets/real.gguf; symlinks are not followed",
-      },
+      remediation: { action: remediationAction },
+      details: { path, reason },
     });
   });
 });

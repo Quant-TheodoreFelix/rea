@@ -13,6 +13,7 @@ import {
 } from "../../src/domain/analysisView/analysisView.js";
 import { createEvidence, parseEvidence } from "../../src/domain/evidence.js";
 import { readEvidenceBundle } from "../../src/application/EvidenceBundleFiles.js";
+import { resolvedRegularFileRemediation } from "../../src/artifacts/StableArtifactFailure.js";
 import { connectLocalToolsMcp } from "../fixtures/localToolsMcp.js";
 import { parseMcpToolError } from "../fixtures/mcpToolError.js";
 import {
@@ -1316,8 +1317,8 @@ cliTest(
   },
 );
 
-cliTest(
-  "names the resolved target for a single symlink and keeps a loop distinct",
+cliTest.skipIf(process.platform === "win32")(
+  "names the resolved file of a selected symlink and keeps a loop distinct",
   async ({ cli }) => {
     const root = await createTestTempDirectory("rea-model-symlink-");
     const real = join(root, "real.gguf");
@@ -1337,15 +1338,9 @@ cliTest(
       code: "target_unavailable",
       category: "unavailable",
       retryable: false,
-      remediation: {
-        action: `Retry with the resolved regular file path ${real}. The selected symlink is not admitted; the retry will validate the target again.`,
-      },
-      details: {
-        path: single,
-        reason: `Selected path is a symbolic link to ${real}; symlinks are not followed`,
-      },
+      remediation: { action: resolvedRegularFileRemediation(real) },
+      details: { path: single, reason: expect.stringContaining(real) },
     });
-    expect(JSON.stringify(singleResult.json)).not.toContain("too many");
 
     const loopResult = await cli.run({
       arguments: ["inspect-model-artifact", loopA, "--json"],
@@ -1354,14 +1349,10 @@ cliTest(
     expect(loopResult.json).toMatchObject({
       code: "target_unavailable",
       category: "unavailable",
-      details: {
-        path: loopA,
-        reason: `Selected path is a symbolic link chain that does not resolve: ${loopA}`,
-      },
+      retryable: false,
+      remediation: { action: expect.not.stringContaining(real) },
+      details: { path: loopA, reason: expect.stringContaining("ELOOP") },
     });
-    expect(JSON.stringify(loopResult.json)).not.toContain(
-      `symbolic link to ${real}`,
-    );
 
     const resolved = await cli.run({
       arguments: ["inspect-model-artifact", real, "--json"],

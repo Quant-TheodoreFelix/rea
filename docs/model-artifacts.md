@@ -166,9 +166,12 @@ nesting limit, while the required dtype, shape and data offsets are still
 validated. JSON duplicate keys, invalid UTF-8, out-of-file
 ranges, overlaps, gaps, trailing unindexed data and known dtype/shape byte-length
 contradictions are rejected with a typed `file_format_rejected` constraint (public code `target_unavailable`, category `unsupported_target`).
-A missing, non-regular or otherwise unusable selected path is also `target_unavailable`;
-host I/O or resource failures on a valid selection, such as `EMFILE` or `EIO`, are
-`execution_failure` with the path and reason in `details.diagnostics`. Empty
+A missing, non-regular or otherwise unusable selected path is also `target_unavailable`.
+A selected symbolic link is refused without being followed: `details.reason` states
+what it resolves to, and when that is a regular file, `remediation.action` names the
+path for a deliberate retry; a loop, a dangling link or an unreachable target gets no
+retry path. Host I/O or resource failures on a valid selection, such as `EMFILE` or
+`EIO`, are `execution_failure` with the path and reason in `details.diagnostics`. Empty
 tensors and scalar shapes are supported. The reader retains shape dimensions as
 exact unsigned 64-bit values, including values above JavaScript's safe-integer
 range when a zero extent makes storage empty. Shape products are checked in

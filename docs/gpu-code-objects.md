@@ -18,7 +18,10 @@ IDs, compression declarations and encoded/header locations. Fields, exact
 filters, batch IDs and stable pagination select the facts delivered to the
 caller. IDs are positional within the recorded artifact SHA-256. Selecting `object_ids`
 in a new inspection requires `expected_sha256` from that inventory; a changed
-file is rejected before parsing selected payloads.
+file is rejected before parsing selected payloads. The selected path must be a
+regular file: a symbolic link is refused as `target_unavailable` without being
+followed, and when it currently resolves to a regular file, `remediation.action`
+names that path for a deliberate retry.
 
 `target` is the inventory declaration used for selection; `payload_target` is
 the independently observed inner declaration when available. Object pages keep
